@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Calories</title>
+
+  <!-- PWA / iOS home screen -->
+
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Calories" />
+  <meta name="theme-color" content="#f7f4ef" />
+  <link rel="manifest" href="manifest.json" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #f7f4ef;
+      --ink: #2a2420;
+      --ink2: #7a7268;
+      --ink3: #b0a89e;
+      --ink4: #c4bdb4;
+      --line: #e4dfd8;
+      --line2: #ece7e0;
+      --red: #9b3a2a;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bot: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      overscroll-behavior: none;
+    }
+
+    #app {
+      max-width: 420px;
+      margin: 0 auto;
+      padding: calc(var(--safe-top) + 44px) 24px calc(var(--safe-bot) + 80px);
+    }
+
+    /* HEADER */
+    .date-label {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 12px;
+      color: var(--ink3);
+      letter-spacing: 0.02em;
+      margin-bottom: 4px;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 400;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+      margin-bottom: 28px;
+    }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 28px;
+    }
+    .tab {
+      background: none; border: none; cursor: pointer;
+      font-family: 'DM Mono', monospace; font-size: 10px;
+      font-weight: 400; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 8px 14px; color: var(--ink3);
+      border-bottom: 1.5px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab.active { color: var(--ink); border-bottom-color: var(--ink); }
+
+    /* RING */
+    .ring-wrap {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      margin-bottom: 32px;
+    }
+    .ring-svg { flex-shrink: 0; }
+    .ring-progress { transition: stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1), stroke 0.4s; }
+    .stats { display: flex; flex-direction: column; gap: 16px; }
+    .stat-label {
+      font-size: 9px; color: var(--ink3);
+      letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 2px;
+    }
+    .stat-val {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px; color: var(--ink); line-height: 1;
+    }
+    .stat-val.over { color: var(--red); }
+
+    /* INPUT ROW */
+    .input-row {
+      display: flex; gap: 10px; align-items: flex-end;
+      margin-bottom: 22px;
+    }
+    .food-input {
+      background: transparent; border: none;
+      border-bottom: 1.5px solid var(--line);
+      color: var(--ink); font-family: 'DM Mono', monospace;
+      font-size: 14px; font-weight: 300; outline: none;
+      padding: 9px 0; width: 100%;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+    .food-input::placeholder { color: var(--ink4); }
+    .food-input:focus { border-bottom-color: var(--ink); }
+    .add-btn {
+      background: var(--ink); border: none; color: var(--bg);
+      cursor: pointer; font-family: 'DM Mono', monospace;
+      font-size: 10px; font-weight: 500; letter-spacing: 0.14em;
+      padding: 9px 16px; text-transform: uppercase;
+      transition: opacity 0.15s; white-space: nowrap; flex-shrink: 0;
+      -webkit-appearance: none;
+    }
+    .add-btn:active { opacity: 0.45; }
+
+    /* ENTRIES */
+    .entry {
+      display: flex; align-items: baseline;
+      gap: 12px; padding: 10px 0;
+      border-bottom: 1px solid var(--line2);
+      animation: fadeUp 0.25s ease forwards;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .entry-name {
+      font-family: 'Playfair Display', serif; font-size: 15px;
+      color: var(--ink); flex: 1;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .entry-cal {
+      font-size: 12px; color: var(--ink2); flex-shrink: 0;
+    }
+    .del-btn {
+      background: none; border: none; color: var(--ink4);
+      cursor: pointer; font-size: 18px; line-height: 1;
+      padding: 0 0 0 8px; flex-shrink: 0;
+      transition: color 0.15s;
+    }
+    .del-btn:active { color: var(--red); }
+
+    .empty {
+      color: var(--ink4); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      text-align: center; padding: 20px 0;
+    }
+
+    .clear-wrap { padding-top: 18px; display: flex; justify-content: center; }
+    .ghost-btn {
+      background: none; border: none; color: var(--ink4);
+      cursor: pointer; font-family: 'DM Mono', monospace;
+      font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 4px 0; transition: color 0.15s;
+    }
+    .ghost-btn:active { color: var(--red); }
+
+    /* SHAKE */
+    .shake { animation: shake 0.4s ease; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-5px); }
+      40%      { transform: translateX(5px); }
+      60%      { transform: translateX(-3px); }
+      80%      { transform: translateX(3px); }
+    }
+
+    /* HISTORY */
+    .hist-day { padding: 14px 0; border-bottom: 1px solid var(--line); }
+    .hist-header {
+      display: flex; align-items: center;
+      justify-content: space-between; cursor: pointer; gap: 12px;
+    }
+    .hist-day-name {
+      font-family: 'Playfair Display', serif; font-size: 15px; color: var(--ink);
+    }
+    .hist-day-key {
+      font-size: 9px; color: var(--ink3); letter-spacing: 0.08em; margin-top: 1px;
+    }
+    .hist-right { display: flex; align-items: center; gap: 10px; }
+    .hist-bar-track { width: 60px; height: 2px; background: var(--line); border-radius: 1px; }
+    .hist-bar-fill { height: 100%; border-radius: 1px; background: var(--ink); transition: width 0.4s; }
+    .hist-bar-fill.over { background: var(--red); }
+    .hist-total { font-size: 12px; color: var(--ink); min-width: 36px; text-align: right; }
+    .hist-total.over { color: var(--red); }
+    .hist-toggle { font-size: 13px; color: var(--ink4); width: 12px; text-align: center; }
+    .hist-entries { margin-top: 10px; }
+    .hist-entry {
+      display: flex; justify-content: space-between;
+      padding: 5px 0; border-bottom: 1px solid #f0ece6;
+    }
+    .hist-entry-name {
+      font-family: 'Playfair Display', serif; font-style: italic;
+      font-size: 13px; color: var(--ink2);
+    }
+    .hist-entry-cal { font-size: 11px; color: var(--ink3); }
+    .hist-summary {
+      font-size: 9px; color: var(--ink3); letter-spacing: 0.1em;
+      text-transform: uppercase; margin-top: 8px; text-align: right;
+    }
+  </style>
+
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const GOAL = 2000;
+const STORAGE_KEY = 'calorie-tracker-v1';
+
+// ── Storage helpers ──────────────────────────────────────────────────────────
+function loadAll() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveAll(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+}
+
+// ── Date helpers ─────────────────────────────────────────────────────────────
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+function formatLabel(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const tk = todayKey();
+  const yd = new Date(); yd.setDate(yd.getDate() - 1);
+  const yk = yd.toISOString().slice(0, 10);
+  if (key === tk) return 'Today';
+  if (key === yk) return 'Yesterday';
+  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+// ── State ────────────────────────────────────────────────────────────────────
+let allData = loadAll();
+let view = 'today';
+let openDays = {};
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  const tk = todayKey();
+  const entries = allData[tk] || [];
+  const total = entries.reduce((s, e) => s + e.cal, 0);
+  const pct = Math.min((total / GOAL) * 100, 100);
+  const over = total > GOAL;
+  const remaining = GOAL - total;
+  const C = 2 * Math.PI * 52;
+  const offset = C * (1 - pct / 100);
+
+  const histDays = Object.keys(allData)
+    .filter(k => k !== tk)
+    .sort((a, b) => b.localeCompare(a));
+
+  const dateStr = new Date().toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+  });
+
+  document.getElementById('app').innerHTML = `
+    <p class="date-label">${dateStr}</p>
+    <h1>Calories</h1>
+
+    <div class="tabs">
+      <button class="tab ${view === 'today' ? 'active' : ''}" onclick="setView('today')">Today</button>
+      <button class="tab ${view === 'history' ? 'active' : ''}" onclick="setView('history')">
+        History${histDays.length ? ' (' + histDays.length + ')' : ''}
+      </button>
+    </div>
+
+    ${view === 'today' ? `
+      <div class="ring-wrap">
+        <svg class="ring-svg" width="116" height="116" viewBox="0 0 116 116">
+          <circle cx="58" cy="58" r="52" fill="none" stroke="#e4dfd8" stroke-width="5"/>
+          <circle cx="58" cy="58" r="52" fill="none"
+            stroke="${over ? '#9b3a2a' : '#2a2420'}"
+            stroke-width="5" stroke-linecap="round"
+            stroke-dasharray="${C}"
+            stroke-dashoffset="${pct === 0 ? C : offset}"
+            transform="rotate(-90 58 58)"
+            class="ring-progress"
+            style="opacity:${pct === 0 ? 0 : 1}"
+          />
+          <text x="58" y="53" text-anchor="middle"
+            style="font-family:'Playfair Display',serif;font-size:22px;fill:${over ? '#9b3a2a' : '#2a2420'}"
+          >${total}</text>
+          <text x="58" y="68" text-anchor="middle"
+            style="font-family:'DM Mono',monospace;font-size:8px;fill:#b0a89e;letter-spacing:2.5px"
+          >KCAL</text>
+        </svg>
+        <div class="stats">
+          <div>
+            <p class="stat-label">Goal</p>
+            <p class="stat-val">${GOAL.toLocaleString()}</p>
+          </div>
+          <div>
+            <p class="stat-label">${over ? 'Over' : 'Left'}</p>
+            <p class="stat-val ${over ? 'over' : ''}">${over ? '+' + (total - GOAL).toLocaleString() : remaining.toLocaleString()}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-row" id="input-row">
+        <input class="food-input" id="food-input" placeholder="food item"
+          onkeydown="if(event.key==='Enter')addEntry()"
+          style="flex:2"
+        />
+        <input class="food-input" id="cal-input" placeholder="kcal" type="number" min="1"
+          onkeydown="if(event.key==='Enter')addEntry()"
+          style="flex:1;max-width:80px"
+        />
+        <button class="add-btn" onclick="addEntry()">Add</button>
+      </div>
+
+      <div id="entries">
+        ${entries.length === 0
+          ? '<p class="empty">nothing logged yet</p>'
+          : [...entries].reverse().map(e => `
+            <div class="entry">
+              <span class="entry-name">${escHtml(e.name)}</span>
+              <span class="entry-cal">${e.cal}</span>
+              <button class="del-btn" onclick="deleteEntry(${e.id})">×</button>
+            </div>
+          `).join('') + `
+          <div class="clear-wrap">
+            <button class="ghost-btn" onclick="clearDay()">clear day</button>
+          </div>`
+        }
+      </div>
+    ` : `
+      <div id="history">
+        ${histDays.length === 0
+          ? '<p class="empty">no history yet</p>'
+          : histDays.map(k => {
+              const dayEntries = allData[k] || [];
+              const dayTotal = dayEntries.reduce((s, e) => s + e.cal, 0);
+              const dayOver = dayTotal > GOAL;
+              const dayPct = Math.min((dayTotal / GOAL) * 100, 100);
+              const isOpen = !!openDays[k];
+              return `
+                <div class="hist-day">
+                  <div class="hist-header" onclick="toggleDay('${k}')">
+                    <div>
+                      <p class="hist-day-name">${formatLabel(k)}</p>
+                      <p class="hist-day-key">${k}</p>
+                    </div>
+                    <div class="hist-right">
+                      <div class="hist-bar-track">
+                        <div class="hist-bar-fill ${dayOver ? 'over' : ''}" style="width:${dayPct}%"></div>
+                      </div>
+                      <span class="hist-total ${dayOver ? 'over' : ''}">${dayTotal}</span>
+                      <span class="hist-toggle">${isOpen ? '−' : '+'}</span>
+                    </div>
+                  </div>
+                  ${isOpen ? `
+                    <div class="hist-entries">
+                      ${dayEntries.map(e => `
+                        <div class="hist-entry">
+                          <span class="hist-entry-name">${escHtml(e.name)}</span>
+                          <span class="hist-entry-cal">${e.cal} kcal</span>
+                        </div>
+                      `).join('')}
+                      <p class="hist-summary">${dayEntries.length} item${dayEntries.length !== 1 ? 's' : ''} · ${dayTotal} kcal</p>
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')
+        }
+      </div>
+    `}
+  `;
+
+  // Restore focus to food input if on today view
+  if (view === 'today') {
+    const fi = document.getElementById('food-input');
+    // Don't auto-focus on mobile (opens keyboard)
+  }
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+function setView(v) { view = v; render(); }
+
+function addEntry() {
+  const nameEl = document.getElementById('food-input');
+  const calEl  = document.getElementById('cal-input');
+  const name = nameEl.value.trim();
+  const cal  = parseInt(calEl.value);
+
+  if (!name || isNaN(cal) || cal <= 0) {
+    const row = document.getElementById('input-row');
+    row.classList.remove('shake');
+    void row.offsetWidth;
+    row.classList.add('shake');
+    setTimeout(() => row.classList.remove('shake'), 400);
+    return;
+  }
+
+  const tk = todayKey();
+  if (!allData[tk]) allData[tk] = [];
+  allData[tk].push({ id: Date.now(), name, cal });
+  saveAll(allData);
+  render();
+  // Refocus food input after render
+  const fi = document.getElementById('food-input');
+  if (fi) fi.focus();
+}
+
+function deleteEntry(id) {
+  const tk = todayKey();
+  allData[tk] = (allData[tk] || []).filter(e => e.id !== id);
+  saveAll(allData);
+  render();
+}
+
+function clearDay() {
+  if (!confirm("Clear today's log?")) return;
+  allData[todayKey()] = [];
+  saveAll(allData);
+  render();
+}
+
+function toggleDay(key) {
+  openDays[key] = !openDays[key];
+  render();
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+render();
+</script>
+
+</body>
+</html>
